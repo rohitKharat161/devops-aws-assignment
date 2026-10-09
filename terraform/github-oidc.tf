@@ -44,14 +44,14 @@ resource "aws_iam_role" "github_actions" {
   }
 }
 
-# Read-only permissions for Terraform plan.
+# Read-only AWS permissions for Terraform plan.
 
 resource "aws_iam_role_policy_attachment" "github_actions_readonly" {
   role       = aws_iam_role.github_actions.name
   policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 }
 
-# Limited access to Terraform remote state and its lock file.
+# Limited permissions for Terraform remote state and database secret.
 
 resource "aws_iam_role_policy" "github_actions_state" {
   name = "${var.project_name}-github-actions-state"
@@ -64,26 +64,41 @@ resource "aws_iam_role_policy" "github_actions_state" {
       {
         Sid    = "ListTerraformStateBucket"
         Effect = "Allow"
+
         Action = [
           "s3:ListBucket",
           "s3:GetBucketLocation"
         ]
+
         Resource = "arn:aws:s3:::devops-assignment-tfstate-587806480204"
       },
       {
         Sid    = "AccessTerraformStateAndLockObjects"
         Effect = "Allow"
+
         Action = [
           "s3:GetObject",
           "s3:PutObject",
           "s3:DeleteObject"
         ]
+
         Resource = [
           "arn:aws:s3:::devops-assignment-tfstate-587806480204/terraform.tfstate",
           "arn:aws:s3:::devops-assignment-tfstate-587806480204/terraform.tfstate.tflock"
         ]
+      },
+      {
+        Sid    = "ReadDatabaseSecretForTerraformPlan"
+        Effect = "Allow"
+
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+
+        Resource = "arn:aws:secretsmanager:ap-south-1:587806480204:secret:devops-assignment/database-credentials-*"
       }
     ]
+
 
   })
 }
